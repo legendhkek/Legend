@@ -1,0 +1,15 @@
+# Example Accounts File Format
+# 
+# Format 1: site:email:password
+# https://example.com:user@example.com:password123
+#
+# Format 2: email:password (uses default site from GUI/CLI)
+# user@example.com:password123
+#
+# Lines starting with # are comments and will be ignored
+# Blank lines are also ignored
+
+# Example accounts (these are NOT real accounts)
+test@example.com:TestPassword123
+demo@test.com:DemoPass456
+user@site.com:SecurePass789

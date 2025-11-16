@@ -439,7 +439,7 @@ class AdvancedProxyManager:
         return total
     
     def validate_proxy_format(self, proxy: str) -> bool:
-        """Validate proxy format"""
+        """Validate proxy format - supports multiple formats including complex credentials"""
         try:
             # Check if it has protocol
             if '://' in proxy:
@@ -452,30 +452,15 @@ class AdvancedProxyManager:
                 rest = proxy
             
             # Check for different formats:
-            # Format 1: host:port:username:password (4 parts)
+            # Format 1: host:port:username:password (4 parts, can have dashes in username/password)
             # Format 2: username:password@host:port (contains @)
             # Format 3: host:port (2 parts, no @)
+            # Format 4: host:port:complex-username-with-dashes:complex-password (>4 parts with special chars)
             
-            parts = rest.split(':')
-            
-            if len(parts) == 4 and '@' not in rest:
-                # Format: host:port:username:password
-                host, port, username, password = parts
-                if not host or not username or not password:
-                    return False
-                # Validate port
-                try:
-                    port_num = int(port)
-                    if port_num < 1 or port_num > 65535:
-                        return False
-                except ValueError:
-                    return False
-                return True
-            elif '@' in rest:
+            # Handle @ format first (clearest indicator)
+            if '@' in rest:
                 # Format: username:password@host:port
                 auth, hostport = rest.rsplit('@', 1)
-                if ':' not in auth:
-                    return False
                 if ':' not in hostport:
                     return False
                 host, port = hostport.rsplit(':', 1)
@@ -489,7 +474,11 @@ class AdvancedProxyManager:
                 except ValueError:
                     return False
                 return True
-            elif len(parts) == 2:
+            
+            # Parse colon-separated format
+            parts = rest.split(':')
+            
+            if len(parts) == 2:
                 # Format: host:port (no authentication)
                 host, port = parts
                 if not host or not port:
@@ -502,6 +491,21 @@ class AdvancedProxyManager:
                 except ValueError:
                     return False
                 return True
+            elif len(parts) >= 4:
+                # Format: host:port:username:password (can have more colons in password)
+                # Validate that second part is a valid port number
+                host = parts[0]
+                try:
+                    port_num = int(parts[1])
+                    if port_num < 1 or port_num > 65535:
+                        return False
+                except ValueError:
+                    return False
+                
+                # Rest is username and password (may contain colons)
+                if not host or len(parts) < 4:
+                    return False
+                return True
             else:
                 return False
             
@@ -509,7 +513,7 @@ class AdvancedProxyManager:
             return False
     
     def format_proxy_url(self, proxy: str, proxy_type: ProxyType) -> str:
-        """Format proxy URL based on type and authentication"""
+        """Format proxy URL based on type and authentication - handles complex credential formats"""
         try:
             # Check if proxy already has protocol
             if proxy.startswith(('http://', 'https://', 'socks4://', 'socks5://')):
@@ -526,22 +530,45 @@ class AdvancedProxyManager:
                 protocol = "http"
             
             # Check for different proxy formats
-            # Format 1: host:port:username:password
+            # Format 1: host:port:username:password (username/password can have dashes and special chars)
             # Format 2: username:password@host:port
             # Format 3: host:port
             
-            parts = proxy.split(':')
-            
-            if len(parts) == 4:
-                # Format: host:port:username:password
-                host, port, username, password = parts
-                return f"{protocol}://{username}:{password}@{host}:{port}"
-            elif len(parts) == 2:
-                # Format: host:port (no authentication)
-                return f"{protocol}://{proxy}"
-            elif '@' in proxy:
+            # Handle @ format first (clearest indicator)
+            if '@' in proxy:
                 # Format: username:password@host:port (already in proper format minus protocol)
                 return f"{protocol}://{proxy}"
+            
+            # Parse colon-separated format
+            parts = proxy.split(':')
+            
+            if len(parts) == 2:
+                # Format: host:port (no authentication)
+                return f"{protocol}://{proxy}"
+            elif len(parts) >= 4:
+                # Format: host:port:username:password
+                # Username and password can contain colons, so we need to be careful
+                host = parts[0]
+                port = parts[1]
+                
+                # Everything from index 2 onwards could be username:password
+                # The format is typically: host:port:username:password
+                # But password can contain colons, so we join remaining parts
+                remaining = parts[2:]
+                
+                # Try to determine split point between username and password
+                # Common pattern: if parts[2] looks like a username (no special chars),
+                # and parts[3:] is the password
+                if len(remaining) == 2:
+                    # Simple case: exactly 4 parts
+                    username, password = remaining
+                else:
+                    # Complex case: password contains colons
+                    # Assume username is parts[2], rest is password
+                    username = remaining[0]
+                    password = ':'.join(remaining[1:])
+                
+                return f"{protocol}://{username}:{password}@{host}:{port}"
             else:
                 # Unknown format, just add protocol
                 return f"{protocol}://{proxy}"
