@@ -2,6 +2,10 @@
 
 A powerful, multi-threaded account checker with advanced site detection, proxy support, and CAPTCHA handling capabilities.
 
+## 🚀 Quick Start
+
+**New to this tool?** Check out [QUICKSTART.md](QUICKSTART.md) for a step-by-step guide!
+
 ## Features
 
 ### ✨ Core Features
@@ -184,8 +188,10 @@ checker.configure_captcha_solver([
 ```
 
 Supported providers:
-- 2captcha.com
+- 2captcha.com (test key: `a9c730ba8bc503517961db5a94892775`)
 - clearcaptcha.com
+
+**Note**: The test key provided above is for demonstration purposes. Replace with your own API key for production use.
 
 #### 2. Local Audio Solving (Experimental)
 Requires additional dependencies:
@@ -231,7 +237,7 @@ python3 advancedchecker.py --check-creds accounts.txt --site https://example.com
 ### Example 2: With Proxies
 
 ```bash
-# Create a proxy file
+# Create a proxy file (example residential proxy format)
 echo "p1.arealproxy.com:9000:zaym246-type-residential-country-gb:fd86cea5-501a-401e-a1d4-b372c33ced0e" > proxies.txt
 
 # Check with proxies
@@ -240,6 +246,8 @@ python3 advancedchecker.py --check-creds accounts.txt \
     --proxies \
     --proxy-file proxies.txt
 ```
+
+**Note**: The proxy example above is provided for testing format validation. Replace with your own working proxies.
 
 ### Example 3: Site Analysis
 
