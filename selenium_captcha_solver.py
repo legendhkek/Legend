@@ -46,7 +46,10 @@ class LocalCaptchaSolver:
     
     def detect_captcha_type(self, page_source: str) -> Optional[str]:
         """
-        Detect the type of CAPTCHA on the page
+        Detect the type of CAPTCHA on the page by analyzing HTML content.
+        
+        Note: These checks look for CAPTCHA provider domains in HTML source/scripts,
+        not for URL validation. This is safe for CAPTCHA type detection.
         
         Args:
             page_source: HTML source of the page
@@ -56,14 +59,18 @@ class LocalCaptchaSolver:
         """
         page_lower = page_source.lower()
         
+        # Check for hCaptcha by looking for script/iframe references
         if 'hcaptcha.com' in page_lower or 'h-captcha' in page_lower:
             return 'hcaptcha'
+        # Check for reCAPTCHA by looking for API script references
         elif 'recaptcha/api.js' in page_lower or 'g-recaptcha' in page_lower:
             if 'recaptcha/api.js?render=' in page_lower:
                 return 'recaptcha_v3'
             return 'recaptcha_v2'
+        # Check for Cloudflare Turnstile by looking for challenge domain
         elif 'challenges.cloudflare.com' in page_lower or 'cf-turnstile' in page_lower:
             return 'turnstile'
+        # Check for FunCAPTCHA/Arkose by looking for service domains
         elif 'funcaptcha.com' in page_lower or 'arkoselabs.com' in page_lower:
             return 'funcaptcha'
         
